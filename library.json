@@ -1,0 +1,24 @@
+{
+    "name": "MkWifiDev",
+    "version": "0.0.1",
+    "description": "MkWifiDev is a library to simplify cable-free development. It enables colorised logging to local serial & remote terminal and supports Arduino OTA firmware updates.",
+    "keywords": "logging, debug, debugging, ota, remote development, socket, terminal, coloring",
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/zaddi/MkWifiDev"
+    },
+    "authors":
+    [
+      {
+        "name": "Zafferman",
+        "email": "zafferman@gmail.com",
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/zaddi/MkWifiDev",
+    "dependencies": {
+    },
+    "frameworks": "arduino",
+    "platforms": "espressif8266, espressif32"
+  }
