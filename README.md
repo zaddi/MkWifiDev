@@ -137,7 +137,9 @@ If you wish to create a build without log messages you can individually exclude 
   #define DBG_VERBOSE(...)    { }   // Replaces the log macro with nothing
 ```
 ## Examples
-You can view some examples of how to use the library in the examples folder:
+You can view some examples of how to use the library in the examples folder. Note that you will need to enter your wifi credentials in place of the 'YOUR_WIFI_SSID_HERE' and 'YOUR_WIFI_PASSWORD_HERE' placeholder values, and also remove the line `#include "wifi_credentials.h"`.  You should also enter a network name for your device in place of the 'DEVICE_NAME' placeholder.  
+
+The following examples are included:
 - **Basic:** Demonstrates basic use of the library with remote support enabled.
 - **Nowifi:** Shows how to use the library with remote support disabled
 - **Full:** Comprehensive example including OTA authentication & logging to file
