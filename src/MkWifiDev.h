@@ -80,13 +80,14 @@ class MkWifiDev : public Stream
     uint8_t enableFlags = 0xFF;
     Stream *logFile = nullptr;
     Stream *pSerial = &Serial;
+    Stream *pCommand = &Serial;
+    uint8_t termConnected = 0;
 
 
 #ifndef LOCAL_SERIAL_ONLY
     WiFiServer *pserver = NULL;
     WiFiClient serverClient;
     const char* mdns_devname = NULL;
-    uint8_t termConnected = 0;
     enum t_conn_state { idle, connecting, connected };
     t_conn_state conn_state;
 #endif
@@ -150,8 +151,6 @@ class MkWifiDev : public Stream
 #endif
 
   private:
-    int force_read();       // Bypass check if in command mode
-    int force_available();  // Bypass check if in command mode
     void checkMemUsage();
     void connect_loop();
     void print(const char *buff);

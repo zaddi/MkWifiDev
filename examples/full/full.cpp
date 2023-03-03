@@ -1,8 +1,9 @@
-/*  full.cpp - Comprehensive xample showing use of the MkWifiDev library
+/*  full.cpp - Comprehensive example showing use of the MkWifiDev library including
+               changing of the mode flags, setting the time and logging from other files.
 
     This demo will try to connect to the specified WiFi network and if successful, allow
     OTA (over-the-air) updates to be applied. Log messages are sent to the local serial
-    port and to a remote terminal (if connected).
+    port and to a remote terminal if connected.
     
     To upload OTA capable firmware for the first time use serial upload like normal,
     thereafter you may use serial or OTA.
@@ -12,15 +13,14 @@
       upload_protocol = espota                
       ;upload_flags = --auth=admin      ; Only necessary if authentication is enabled 
         
-      monitor_port = socket://YOUR_DEVICE:23  ; Use socket for remote, serial port for local
-
       monitor_raw = yes                       ; Enable text coloring in Serial Monitor
+      monitor_port = socket://YOUR_DEVICE:23  ; Use socket for remote, serial port for local
 
     PuTTY is an excellent terminal program - use Port 23 & set 'Connection type' to 'Raw'
       (Set 'Terminal' | 'Local line editing' to 'Force off' to ensure terminal characters
         are sent immidiately instead of waiting for enter to be pressed)
 
-    For a simpler example refer to the 'minimal' example, or 'nowifi' for how to use the 
+    For a simpler example refer to the 'basic' example, or 'nowifi' for how to use the 
     library for local only (ie no remote/OTA).
 
     This file is part of MkWifiDev, a library which simplifies cable-free development. It 
@@ -38,6 +38,11 @@
 
 //#define FILE_LOGGING_ENABLED   // Uncomment this (and check SD/SPI settings) to enable logging to file
 
+// The following lines show how to exclude a message type from a build
+//#undef DBG_VERBOSE                  // Undefine first to avoid compiler warning
+//  #define DBG_VERBOSE(...)    { }   // Replaces the log macro with nothing ie removing the log message
+
+
 #ifdef FILE_LOGGING_ENABLED
   #include "SPI.h"
   #include "SD.h"
@@ -51,7 +56,7 @@
   File logFile;
 #endif
 
-//#define LED_BUILTIN  GPIO_NUM_2   // If not difined for your board, you can specify a pin here to show wifi status
+//#define LED_BUILTIN  GPIO_NUM_?   // If not defined for your board, you can specify a pin here to show wifi status
 //#define LED_INVERT                // Uncomment this if you need to invert the LED polarity
 
 #ifdef LED_BUILTIN
@@ -93,15 +98,16 @@ void setup() {
   //WifiDev.setDisplayModeFlags(MkWifiDev::WIDE_HEXDUMP);       // Enable wide hex dump display (32 bytes vs 16)
 
   //WifiDev.clearDisplayModeFlags(MkWifiDev::SHOW_TIMESTAMPS);   // Hide the timestamps with each message
+  //WifiDev.clearDisplayModeFlags(MkWifiDev::SHOW_COLOUR);       // Disable message coloring
 
   DBG_VERBOSE("Starting MkWifiDev Demo");
-  DBG_INFO("Anything output before calling WifiDev.begin() will only be output to Serial port");
+  DBG_INFO("Anything before calling WifiDev.begin() will only be sent to Serial port");
 
   WifiDev.begin(ssid, password, devname);   // Start wifi
 
   WifiDev.configTime(GMT_OFFSET, DAYLIGHT_OFFSET);   // Enable internet time sync
 
-  ArduinoOTA.setPassword("admin");    // Enable OTA authentication (password required to apply updates)
+  //ArduinoOTA.setPassword("admin");    // Enable OTA authentication (password required to apply updates)
 
   // Write some test data to our testBuffer
   for(uint32_t i=0; i<sizeof(testBuffer); i++)
@@ -116,7 +122,6 @@ bool color = true;
 
 void sdcard() {
 #ifdef FILE_LOGGING_ENABLED
-
   if(logFile) {
     logFile.close();
     DBG_ALERT("Stopped logging to SD Card");
@@ -145,16 +150,16 @@ void loop() {
   if(WifiDev.loop())   
     return;
 
-#ifdef LED_BUILTIN
-  // Show wifi connection status on LED
+#ifdef LED_BUILTIN // Show wifi connection status on LED (if pin has been defined)
   digitalWrite(LED_BUILTIN, (WiFi.status() == WL_CONNECTED) ? LED_ON : LED_OFF);  
 #endif
 
   // Output a message every 5 seconds
   static uint32_t tprev = millis();
   if(millis()-tprev > 5000) {
-    DBG_DEBUG("Press Ctrl-A at any time to toggle mode. Up for %d seconds", (tprev += 5000)/1000);
+    DBG_DEBUG("Press Ctrl-A at any time to toggle mode. Up for %d seconds", tprev/1000);
     another_func();
+    tprev += 5000;
   }
 
   if(dbgc)

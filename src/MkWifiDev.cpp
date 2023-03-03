@@ -13,7 +13,14 @@
 #define EVENT_MSG_MAX_LEN   (256)
 #define TERMINAL_WIDTH      (74)
 
-const uint8_t colors[] = { MkWifiDev::White, MkWifiDev::Cyan, MkWifiDev::Green, MkWifiDev::BrightBlue, MkWifiDev::Yellow, MkWifiDev::Magenta, MkWifiDev::Red, MkWifiDev::BrightRed};   
+const uint8_t colors[] = {  MkWifiDev::White, 
+                            MkWifiDev::Cyan, 
+                            MkWifiDev::Green, 
+                            MkWifiDev::BrightBlue, 
+                            MkWifiDev::Yellow, 
+                            MkWifiDev::Magenta, 
+                            MkWifiDev::Red, 
+                            MkWifiDev::BrightRed};   
 
 MkWifiDev &MkWifiDev::getInstance() {
   static MkWifiDev instance;
@@ -21,6 +28,36 @@ MkWifiDev &MkWifiDev::getInstance() {
 }
 
 MkWifiDev &WifiDev = WifiDev.getInstance();
+
+int MkWifiDev::peek() {
+  return pCommand->peek();
+}
+
+// Duplicate output to all connected streams
+void MkWifiDev::println(const char *buff) {
+  if(termConnected)
+    pCommand->println(buff);
+  
+  pSerial->println(buff);
+
+  if(logFile) {
+    logFile->println(buff);
+    logFile->flush();
+  }
+}
+
+// Duplicate output to all connected streams
+void MkWifiDev::print(const char *buff) {
+  if(termConnected)
+    pCommand->print(buff);
+  
+  pSerial->print(buff);
+
+  if(logFile) {
+    logFile->print(buff);
+    logFile->flush();
+  }
+}
 
 #ifndef LOCAL_SERIAL_ONLY
 
@@ -32,6 +69,10 @@ void MkWifiDev::begin(const char *ssid, const char *password, const char *mdns_n
 }
 
 void MkWifiDev::setSerial(Stream &serialPort) {
+  
+  if(pCommand == pSerial)   // Make sure command stream updated (if terminal not active)
+    pCommand = &serialPort;
+
   pSerial = &serialPort;
 }
 
@@ -75,7 +116,6 @@ void MkWifiDev::connect_loop()
 
   DBG_ALERT("Wifi Ready! Use client (eg 'PuTTY') & connect to %s port 23", WiFi.localIP().toString().c_str());
 
-  // Hostname defaults to esp3232-[MAC]
   if(mdns_devname != NULL) {
     DBG_ALERT("mDNS Enabled - Device may be reached using '%s.local'", mdns_devname);
     ArduinoOTA.setHostname(mdns_devname);
@@ -110,60 +150,14 @@ void MkWifiDev::connect_loop()
   ArduinoOTA.onError([](ota_error_t error) {
     WifiDev.bOtaBusy = false;
     DBG_ALERT("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) DBG_ALERT("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR) DBG_ALERT("Begin Failed");
+    if      (error == OTA_AUTH_ERROR)    DBG_ALERT("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR)   DBG_ALERT("Begin Failed");
     else if (error == OTA_CONNECT_ERROR) DBG_ALERT("Connect Failed");
     else if (error == OTA_RECEIVE_ERROR) DBG_ALERT("Receive Failed");
-    else if (error == OTA_END_ERROR) DBG_ALERT("End Failed");
+    else if (error == OTA_END_ERROR)     DBG_ALERT("End Failed");
   });
 
   ArduinoOTA.begin();
-}
-
-int MkWifiDev::force_available() {   // Bypass check if in command mode
-  if(termConnected)
-    return serverClient.available();
-  else {
-    return pSerial->available();
-  }
-}
-
-int MkWifiDev::force_read() {       // Bypass check if in command mode
-  if(termConnected)
-    return serverClient.read();
-  else
-    return pSerial->read();
-}
-
-int MkWifiDev::peek() {
-  if(termConnected)
-    return serverClient.peek();
-  else
-    return pSerial->peek();
-}
-
-void MkWifiDev::println(const char *buff) {
-  if(termConnected)
-    serverClient.println(buff);
-  
-  pSerial->println(buff);
-
-  if(logFile) {
-    logFile->println(buff);
-    logFile->flush();
-  }
-}
-
-void MkWifiDev::print(const char *buff) {
-  if(termConnected)
-    serverClient.print(buff);
-  
-  pSerial->print(buff);
-
-  if(logFile) {
-    logFile->print(buff);
-    logFile->flush();
-  }
 }
 
 void MkWifiDev::configTime(long gmtOffset, int daylightOffset, const char * server) {
@@ -179,45 +173,13 @@ bool MkWifiDev::isOtaBusy() {
   return bOtaBusy;
 }
 
-#else
-
-int MkWifiDev::force_available() {   // Bypass check if in command mode
-  return pSerial->available();
-}
-
-int MkWifiDev::force_read() {  // Bypass check if in command mode
-  return pSerial->read();
-}
-
-int MkWifiDev::peek() {
-  return pSerial->peek();
-}
-
-void MkWifiDev::println(const char *buff) {
-  pSerial->println(buff);
-
-  if(logFile) {
-    logFile->println(buff);
-    logFile->flush();
-  }
-}
-
-void MkWifiDev::print(const char *buff) {
-  pSerial->print(buff);
-
-  if(logFile) {
-    logFile->print(buff);
-    logFile->flush();
-  }
-}
-
 #endif
 
 int MkWifiDev::available() {
   if(bCommandMode)
     return 0;
 
-  int ret = force_available();
+  int ret = pCommand->available();
 
   return (ret && (peek() == 0x01)) ? 0 : ret;   // Hide Ctrl-A from being available to app (loop will handle it)
 }
@@ -227,7 +189,7 @@ int MkWifiDev::read() {
   if(bCommandMode)
     return 0;
 
-  return force_read();
+  return pCommand->read();
 }
 
 void MkWifiDev::setDisplayModeFlags(uint8_t flags) {
@@ -476,28 +438,30 @@ bool MkWifiDev::loop() {
       serverClient.println(" +---------------------------------------------+");
       bSendWelcome = false;
       termConnected = 1;
+      pCommand = &serverClient;
     }
   }
 
   if(termConnected && !serverClient.connected()) {
     DBG_ALERT("Remote terminal disconnected, resuming control by serial port");
     termConnected = 0;
+    pCommand = pSerial;
   }
 #endif
 
   char line[TERMINAL_WIDTH+1];
 
-  if(force_available()) {
+  if(pCommand->available()) {
     if(peek() == 0x01) {  // Check for Ctrl-a
       bCommandMode = !bCommandMode;
       if(!bCommandMode) {
-        force_read();   // remove Ctrl-a from buffer
+        pCommand->read();   // remove Ctrl-a from buffer
         DBG_ALERT("Returning to normal mode");
       }
     }  
     if(bCommandMode) {
       static uint8_t waitForConfirm = 0;
-      char c = tolower(force_read());
+      char c = tolower(pCommand->read());
 
       if(waitForConfirm && (c == 'y')) {
         DBG_ALERT("About to restart, please reconnect if using remote terminal");

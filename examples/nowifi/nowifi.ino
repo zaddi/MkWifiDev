@@ -8,6 +8,10 @@
 
     Alternatively PuTTY is an excellent terminal program with text coloring
 
+    This file is part of MkWifiDev, a library which simplifies cable-free development. It 
+    enables colorised logging to local & remote terminals and supports Arduino OTA firmware 
+    updates.  Available at https://github.com/zaddi/MkWifiDev
+
     Refer to the other examples which demonstrate remote development using Wifi.
 */
 
@@ -40,7 +44,7 @@ void loop() {
   if(millis()-tprev > 5000)
     DBG_DEBUG("Press Ctrl-A at any time to toggle mode. Up for %d seconds", (tprev += 5000)/1000);
 
-  // Check for user input (automagically uses network if terminal connected, otherwise serial port)
+  // Check for user input (automagically uses remote terminal connected, otherwise serial port)
   if(WifiDev.available()) {
     char c = WifiDev.read();
     DBG_ALERT("User key '%c' (Decimal value = %d)", c, c);
